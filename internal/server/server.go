@@ -25,7 +25,6 @@ import (
 
 func Start(cfg config.Config) {
 	// ============================= auth client ==============================
-
 	authTimeout, authCancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer authCancel()
 
@@ -40,7 +39,6 @@ func Start(cfg config.Config) {
 	authClient := client.NewAuthClient(auth.NewAuthenticationClient(authCC))
 
 	// ============================= conf client ==============================
-
 	confTimeout, confCancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer confCancel()
 
@@ -55,13 +53,11 @@ func Start(cfg config.Config) {
 	configClient := client.NewConfigClient(confpb.NewConfigClient(confCC))
 
 	// ================================ service ===============================
-
 	tokentService := service.NewTokenService(authClient)
 	configService := service.NewConfigService(configClient)
 	cryptoService := service.NewCryptoService(authClient)
 
 	// ================================ router ================================
-
 	r := gin.Default()
 	r.Use(middleware.Cors())
 
@@ -70,15 +66,9 @@ func Start(cfg config.Config) {
 	encr.Use(middleware.EndToEndEncryption(tokentService, cryptoService))
 
 	// ================================ routes ================================
-
-	r.GET("/ready", func(c *gin.Context) {
-		c.Status(http.StatusOK)
-	})
-
 	encr.POST("facerec", handler.UpdateFacerecConfig(configService))
 
 	// =============================== shutdown ===============================
-
 	srv := &http.Server{
 		Addr:    cfg.ServerConfig.Addr,
 		Handler: r,
