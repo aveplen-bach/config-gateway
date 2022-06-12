@@ -23,7 +23,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func Serve(cfg config.Config) {
+func Start(cfg config.Config) {
 	// ============================= auth client ==============================
 
 	authTimeout, authCancel := context.WithTimeout(context.Background(), 1*time.Second)

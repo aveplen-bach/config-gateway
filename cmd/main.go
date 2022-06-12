@@ -8,5 +8,5 @@ import (
 func main() {
 	var cfg config.Config
 	config.ReadConfig("config-gateway.yaml", &cfg)
-	server.Serve(cfg)
+	server.Start(cfg)
 }
