@@ -25,7 +25,8 @@ import (
 
 func Start(cfg config.Config) {
 	// ============================= auth client ==============================
-	authTimeout, authCancel := context.WithTimeout(context.Background(), 1*time.Second)
+	logrus.Info("connecting to auth service")
+	authTimeout, authCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer authCancel()
 
 	authCC, err := grpc.DialContext(authTimeout, cfg.AuthClient.Addr,
@@ -39,7 +40,8 @@ func Start(cfg config.Config) {
 	authClient := client.NewAuthClient(auth.NewAuthenticationClient(authCC))
 
 	// ============================= conf client ==============================
-	confTimeout, confCancel := context.WithTimeout(context.Background(), 1*time.Second)
+	logrus.Info("connecting to config service")
+	confTimeout, confCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer confCancel()
 
 	confCC, err := grpc.DialContext(confTimeout, cfg.ConfigClient.Addr,
@@ -58,6 +60,7 @@ func Start(cfg config.Config) {
 	cryptoService := service.NewCryptoService(authClient)
 
 	// ================================ router ================================
+	logrus.Info("creating router")
 	r := gin.Default()
 	r.Use(middleware.Cors())
 
@@ -66,6 +69,7 @@ func Start(cfg config.Config) {
 	encr.Use(middleware.EndToEndEncryption(tokentService, cryptoService))
 
 	// ================================ routes ================================
+	logrus.Info("registering routes")
 	encr.POST("facerec", handler.UpdateFacerecConfig(configService))
 
 	// =============================== shutdown ===============================
