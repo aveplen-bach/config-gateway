@@ -55,7 +55,7 @@ func Start(cfg config.Config) {
 	configClient := client.NewConfigClient(confpb.NewConfigClient(confCC))
 
 	// ================================ service ===============================
-	tokentService := service.NewTokenService(authClient)
+	tokentService := service.NewTokenService(cfg, authClient)
 	configService := service.NewConfigService(configClient)
 	cryptoService := service.NewCryptoService(authClient)
 
@@ -64,13 +64,13 @@ func Start(cfg config.Config) {
 	r := gin.Default()
 	r.Use(middleware.Cors())
 
-	encr := r.Group("/encr")
-	encr.Use(middleware.IncrementalToken(tokentService))
-	encr.Use(middleware.EndToEndEncryption(tokentService, cryptoService))
+	encr := r.Group("/api/config/encr")
+	encr.Use(middleware.Incremental(tokentService))
+	encr.Use(middleware.Encryption(tokentService, cryptoService))
 
 	// ================================ routes ================================
 	logrus.Info("registering routes")
-	encr.POST("facerec", handler.UpdateFacerecConfig(configService))
+	encr.POST("/facerec", handler.UpdateFacerecConfig(configService))
 
 	// =============================== shutdown ===============================
 	srv := &http.Server{

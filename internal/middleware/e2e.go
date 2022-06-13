@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func EndToEndEncryption(ts *service.TokenService, cs *service.CryptoService) gin.HandlerFunc {
+func Encryption(ts *service.TokenService, cs *service.CryptoService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logrus.Info("end to end enctyption middleware triggered")
 

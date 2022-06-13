@@ -1,23 +1,28 @@
 package service
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/aveplen-bach/config-gateway/internal/client"
+	"github.com/aveplen-bach/config-gateway/internal/config"
 	"github.com/aveplen-bach/config-gateway/internal/model"
 	"github.com/sirupsen/logrus"
 )
 
 type TokenService struct {
-	ac *client.AuthClient
+	ac  *client.AuthClient
+	cfg config.Config
 }
 
-func NewTokenService(ac *client.AuthClient) *TokenService {
+func NewTokenService(cfg config.Config, ac *client.AuthClient) *TokenService {
 	return &TokenService{
-		ac: ac,
+		ac:  ac,
+		cfg: cfg,
 	}
 }
 
@@ -25,13 +30,28 @@ func (t *TokenService) NextToken(token string) (string, error) {
 	logrus.Info("getting next token")
 	protected, err := unpack(token)
 	if err != nil {
-		logrus.Warnf("could not unpack token: %w", err)
+		logrus.Error("could not unpack token")
 		return "", fmt.Errorf("could not unpack token: %w", err)
+	}
+
+	signval, err := valSign(
+		protected.SignatureBytes,
+		[]byte(t.cfg.SJWTConfig.Secret),
+		protected.Header,
+		protected.Payload,
+	)
+	if err != nil {
+		logrus.Error("could not validate signature")
+		return "", fmt.Errorf("could not validate signature: %w", err)
+	}
+	if !signval {
+		logrus.Error("sign of prev token is not correct")
+		return "", fmt.Errorf("sign of prev token is not correct")
 	}
 
 	nsyn, err := t.ac.GetNextSynPackage(uint(protected.Payload.UserID), protected.SynchronizationBytes)
 	if err != nil {
-		logrus.Warnf("could not get next syn: %w", err)
+		logrus.Error("could not get next syn")
 		return "", fmt.Errorf("could not get next syn: %w", err)
 	}
 
@@ -39,23 +59,11 @@ func (t *TokenService) NextToken(token string) (string, error) {
 
 	repacked, err := pack(protected)
 	if err != nil {
-		logrus.Warnf("could not pack token: %w", err)
+		logrus.Error("could not pack token")
 		return "", fmt.Errorf("could not pack token: %w", err)
 	}
 
 	return repacked, nil
-}
-
-func (t *TokenService) ValidateToken(token string) (bool, error) {
-	protected, err := unpack(token)
-	if err != nil {
-		logrus.Warnf("could not unpack token: %w", err)
-		return false, fmt.Errorf("could not unpack token: %w", err)
-	}
-
-	logrus.Warn("Validate token not implemented", protected)
-
-	return true, nil
 }
 
 func (t *TokenService) ExtractPayload(token string) (model.Payload, error) {
@@ -147,4 +155,33 @@ func unpack(token string) (model.TokenProtected, error) {
 		Payload:              payload,
 		SignatureBytes:       sign,
 	}, nil
+}
+
+func valSign(signature []byte, secret []byte, header model.Header, payload model.Payload) (bool, error) {
+	headb, err := json.Marshal(header)
+	if err != nil {
+		return false, fmt.Errorf("could not marshal header: %w", err)
+	}
+
+	pldb, err := json.Marshal(payload)
+	if err != nil {
+		return false, fmt.Errorf("could not marshal payload: %w", err)
+	}
+
+	h := hmac.New(sha256.New, []byte(secret))
+
+	data := strings.Join(b64EncodeSlice([][]byte{headb, pldb}), ".")
+	if _, err := h.Write([]byte(data)); err != nil {
+		return false, fmt.Errorf("could not construct hmac of original values: %w", err)
+	}
+
+	return hmac.Equal(signature, h.Sum(nil)), nil
+}
+
+func b64EncodeSlice(bytes [][]byte) []string {
+	res := make([]string, len(bytes))
+	for i := range bytes {
+		res[i] = base64.StdEncoding.EncodeToString(bytes[i])
+	}
+	return res
 }
