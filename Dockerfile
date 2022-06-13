@@ -17,5 +17,6 @@ RUN CGO_ENABLED=0 go build -o /bin/config-gateway \
 FROM alpine:3.15.4 as runtime
 
 COPY --from=builder /bin/config-gateway /bin/config-gateway
+COPY ./config-gateway.yaml ./config-gateway.yaml
 
 ENTRYPOINT [ "/bin/config-gateway" ]
