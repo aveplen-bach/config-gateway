@@ -16,7 +16,7 @@ type (
 	}
 
 	ServerConfig struct {
-		Addr string `yaml:"addr" env:"GRPC_LISTEN_ADDR" env-defaul:":30032"`
+		Addr string `yaml:"addr" env:"HTTP_LISTEN_ADDR" env-defaul:":30032"`
 	}
 
 	SJWTConfig struct {

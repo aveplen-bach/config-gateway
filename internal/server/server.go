@@ -73,6 +73,7 @@ func Start(cfg config.Config) {
 	encr.POST("/facerec", handler.UpdateFacerecConfig(configService))
 
 	r.GET("/cg/health/live", func(c *gin.Context) {
+		logrus.Info("feeling healthy")
 		c.Status(http.StatusOK)
 	})
 
@@ -83,11 +84,12 @@ func Start(cfg config.Config) {
 	}
 
 	go func() {
-		logrus.Infof("listening: %s\n", srv.Addr)
 		if err := srv.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
 			logrus.Warn(err)
 		}
 	}()
+
+	logrus.Infof("listening: %s\n", srv.Addr)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
