@@ -72,6 +72,10 @@ func Start(cfg config.Config) {
 	logrus.Info("registering routes")
 	encr.POST("/facerec", handler.UpdateFacerecConfig(configService))
 
+	r.GET("/cg/health/live", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
 	// =============================== shutdown ===============================
 	srv := &http.Server{
 		Addr:    cfg.ServerConfig.Addr,
